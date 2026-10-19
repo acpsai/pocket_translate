@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>隨身翻譯</title>
+<meta name="theme-color" content="#16343B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="隨身翻譯">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap">
+<style>
+/* Layout: one-column phone app. Header + three tabs (翻譯 / 對話 / 會議). Deep teal panels carry results; saffron marks the main action. */
+:root{
+  --bg:#EDF1EF; --surface:#FFFFFF; --ink:#13292F; --muted:#5A6D6F; --line:#D3DDDA;
+  --accent:#D48A12; --accent-ink:#1E1404; --deep:#16343B; --deep-ink:#E8F0EE; --deep-muted:#9DB6B4;
+  --danger:#B23A2B; --danger-ink:#FFFFFF; --ok:#2D7A4E; --focus:#2C7C8A;
+  --f-display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --f-body:-apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Hiragino Sans", "Microsoft JhengHei", "Segoe UI", sans-serif;
+  --r:14px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0D181B; --surface:#15252A; --ink:#E3ECEA; --muted:#93A7A7; --line:#25393E;
+    --accent:#EFAA36; --accent-ink:#1E1404; --deep:#1C3D45; --deep-ink:#ECF4F2; --deep-muted:#A3BDBB;
+    --danger:#D9614F; --danger-ink:#FFFFFF; --ok:#5DBB86; --focus:#6FC0CC; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-body);font-size:16px;line-height:1.55;-webkit-text-size-adjust:100%;
+  padding-top:env(safe-area-inset-top, 0px);padding-bottom:env(safe-area-inset-bottom, 0px)}
+button,select,textarea,input{font:inherit;color:inherit}
+button{-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+[hidden]{display:none !important}
+
+.app{max-width:560px;margin:0 auto;padding-block:12px 40px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mark{font-family:var(--f-display);font-weight:700;font-size:26px;letter-spacing:-.01em;margin:0;line-height:1.1}
+.mark small{display:block;font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.head-right{display:flex;gap:8px;align-items:center}
+.iconbtn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer}
+.iconbtn svg{width:20px;height:20px;stroke:var(--ink)}
+
+.nav{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.nav button{border:0;background:transparent;border-radius:9px;padding:10px 4px;font-weight:600;font-size:15px;color:var(--muted);cursor:pointer}
+.nav button[aria-selected="true"]{background:var(--deep);color:var(--deep-ink)}
+.view{display:flex;flex-direction:column;gap:14px}
+
+.banner{background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.banner b{font-size:15px}
+
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 10px;white-space:nowrap;border-radius:999px;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.langbar{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end}
+.langbar label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lbl{font-size:11px;letter-spacing:.1em;color:var(--muted)}
+select.sel,.fields select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 17px) 55%,calc(100% - 12px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px !important}
+select.sel{width:100%;appearance:none;-webkit-appearance:none;background-color:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:15px;font-weight:600;cursor:pointer}
+.swap{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center}
+.swap svg{width:20px;height:20px;stroke:var(--ink)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px}
+.card h2{font-size:15px;margin:0}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;padding:6px 10px 9px;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--accent)}
+textarea.big{width:100%;min-height:120px;resize:vertical;border:0;background:transparent;font-size:18px;line-height:1.5;padding:2px}
+textarea.big:focus-visible{outline:none}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.spacer{flex:1}
+.count{font-family:var(--f-display);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ghost{border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer;color:var(--muted);display:inline-block;position:relative;overflow:hidden}
+.ghost input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.go{border:0;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:11px 20px;font-weight:700;font-size:15px;cursor:pointer;min-width:96px}
+.go:disabled,.ghost:disabled{opacity:.5;cursor:default}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.mic{width:48px;height:48px;border-radius:50%;border:0;background:var(--deep);cursor:pointer;display:grid;place-items:center;flex:none}
+.mic svg{width:22px;height:22px;stroke:var(--deep-ink)}
+.mic[aria-pressed="true"]{background:var(--danger)} .mic[aria-pressed="true"] svg{stroke:var(--danger-ink)}
+
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:150px;border:1.5px dashed var(--line);border-radius:12px;cursor:pointer;text-align:center;padding:16px;color:var(--muted);position:relative}
+.drop strong{color:var(--ink);font-size:16px}
+.drop svg{width:30px;height:30px;stroke:var(--accent)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.preview{display:flex;gap:10px;align-items:center}
+.preview img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.preview p{margin:0;font-size:13px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+
+.result{background:var(--deep);color:var(--deep-ink);border-radius:var(--r);padding:14px 14px 10px;display:flex;flex-direction:column;gap:10px}
+.result-head{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--deep-muted);letter-spacing:.06em}
+.tag{border:1px solid currentColor;border-radius:999px;padding:1px 8px;font-size:11px}
+.out{font-size:20px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;min-height:2.2em;margin:0}
+.out.placeholder{color:var(--deep-muted);font-size:16px}
+.result .acts{display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid color-mix(in srgb, var(--deep-ink) 16%, transparent);padding-top:8px}
+.result .acts button{border:0;background:transparent;color:var(--deep-ink);padding:6px 10px;border-radius:8px;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.result .acts svg{width:16px;height:16px;stroke:var(--deep-ink)}
+.status{font-size:13px;color:var(--danger);margin:0}
+.status.calm{color:var(--muted)}
+
+.hist h2{font-family:var(--f-display);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:6px 0 0;font-weight:600}
+.hist ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hist li button{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 2px;cursor:pointer;display:grid;gap:2px}
+.pair{font-family:var(--f-display);font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.hsrc,.hdst{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.hsrc{font-size:13px;color:var(--muted)} .hdst{font-size:15px}
+.empty{font-size:13px;color:var(--muted);margin:0}
+
+/* Conversation */
+.chat{display:flex;flex-direction:column;gap:10px;min-height:120px}
+.bubble{max-width:86%;border-radius:16px;padding:9px 12px;display:flex;flex-direction:column;gap:3px;cursor:pointer;border:0;text-align:left;font:inherit}
+.bubble .orig{font-size:13px;opacity:.75;overflow-wrap:anywhere}
+.bubble .tr{font-size:18px;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
+.bubble.me{align-self:flex-end;background:var(--deep);color:var(--deep-ink);border-bottom-right-radius:4px}
+.bubble.them{align-self:flex-start;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-bottom-left-radius:4px}
+.who{font-family:var(--f-display);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.65}
+.composer{position:sticky;bottom:0;background:var(--bg);display:flex;flex-direction:column;gap:8px;padding-block:8px calc(4px + env(safe-area-inset-bottom, 0px));border-top:1px solid var(--line)}
+#tkText{min-height:54px;font-size:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 11px;width:100%;resize:none}
+.talkbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.talk{border:0;border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;min-height:66px}
+.talk svg{width:24px;height:24px;flex:none}
+.talk span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.talk b{font-size:16px} .talk small{font-size:12px;opacity:.8}
+.talk.me{background:var(--deep);color:var(--deep-ink)} .talk.me svg{stroke:var(--deep-ink)}
+.talk.them{background:var(--accent);color:var(--accent-ink)} .talk.them svg{stroke:var(--accent-ink)}
+.talk[aria-pressed="true"]{background:var(--danger);color:var(--danger-ink)} .talk[aria-pressed="true"] svg{stroke:var(--danger-ink)}
+.talk:disabled{opacity:.55}
+.toggle{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.bigview{position:fixed;inset:0;z-index:30;background:var(--deep);color:var(--deep-ink);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;text-align:center;cursor:pointer;
+  padding:calc(24px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(24px, env(safe-area-inset-left, 0px))}
+.bigview p{font-size:clamp(28px, 8vw, 48px);line-height:1.35;margin:0;overflow-wrap:anywhere;text-wrap:balance}
+.bigview small{color:var(--deep-muted)}
+
+/* Meeting */
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fields label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+.fields .full{grid-column:1/-1}
+.fields select{appearance:none;-webkit-appearance:none}
+.fields input,.fields select{width:100%;background-color:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:15px;color:var(--ink)}
+@media (max-width:370px){.fields{grid-template-columns:1fr}}
+.recbar{display:flex;align-items:center;gap:12px}
+.rec{border:0;border-radius:999px;white-space:nowrap;flex:none;background:var(--danger);color:var(--danger-ink);font-weight:700;font-size:16px;padding:14px 22px;display:inline-flex;gap:10px;align-items:center;cursor:pointer}
+.rec .dot{width:12px;height:12px;border-radius:50%;background:var(--danger-ink)}
+.rec.on .dot{border-radius:2px}
+.rectime{font-family:var(--f-display);font-weight:700;font-size:28px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.recstate{font-size:12px;color:var(--muted)}
+.live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--danger);font-weight:600}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--danger)}
+.segs{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;padding-right:2px}
+.segrow{display:grid;grid-template-columns:44px 1fr;gap:8px;font-size:15px}
+.segrow .ts{font-family:var(--f-display);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:3px}
+.segrow .txt{overflow-wrap:anywhere;min-width:0}
+.segrow .segtr{display:block;color:var(--ok);font-size:14.5px;margin-top:2px}
+.interim{color:var(--muted);font-style:italic;margin:0;min-height:1.4em;font-size:15px}
+details.import{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
+details.import summary{cursor:pointer;font-size:14px;font-weight:600}
+details.import textarea{width:100%;min-height:120px;margin-top:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:15px}
+
+.minutes{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.minutes-head{background:var(--deep);color:var(--deep-ink);padding:14px;display:flex;flex-direction:column;gap:4px}
+.minutes-head h2{font-size:19px;margin:0;line-height:1.35;text-wrap:balance}
+.minutes-head .meta{font-size:12px;color:var(--deep-muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.minutes-body{padding:4px 14px 14px;display:flex;flex-direction:column}
+.sec{padding:12px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.sec:last-child{border-bottom:0}
+.sec h3{font-family:var(--f-display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
+.sec p{margin:0}
+.sec ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+.todo{list-style:none;padding:0 !important;gap:8px !important}
+.todo li{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:start}
+.todo .box{width:16px;height:16px;border:1.5px solid var(--accent);border-radius:4px;margin-top:4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
+.chip{font-size:11.5px;border-radius:999px;padding:1px 8px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.none{color:var(--muted);font-size:14px;list-style:none}
+.full-tr{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.6;max-height:420px;overflow:auto;background:var(--bg);border-radius:10px;padding:10px;margin:0;font-family:var(--f-body)}
+.progress{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Settings sheet */
+.sheet-bg{position:fixed;inset:0;z-index:40;background:color-mix(in srgb, #000 45%, transparent);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;display:flex;flex-direction:column;gap:12px;
+  padding:16px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+.sheet h2{margin:0;font-size:18px}
+.sheet label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.sheet input{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;color:var(--ink);width:100%}
+.sheet ol{margin:0;padding-left:1.3em;font-size:14px;display:flex;flex-direction:column;gap:4px}
+.sheet a{color:var(--focus)}
+.okmsg{color:var(--ok);font-size:13px;margin:0}
+
+@media (prefers-reduced-motion: no-preference){
+  .out.streaming::after{content:"▍";animation:blink 1s steps(2) infinite;color:var(--accent)}
+  @keyframes blink{50%{opacity:0}}
+  .mic[aria-pressed="true"],.talk[aria-pressed="true"],.rec.on{animation:pulse 1.3s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 8px color-mix(in srgb, var(--danger) 25%, transparent)}}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 class="mark">隨身翻譯<small>Pocket Interpreter</small></h1>
+    <div class="head-right">
+      <div class="seg" role="group" aria-label="語氣" id="toneSeg">
+        <button type="button" data-tone="neutral" aria-pressed="true">一般</button>
+        <button type="button" data-tone="business" aria-pressed="false">商務</button>
+        <button type="button" data-tone="casual" aria-pressed="false">口語</button>
+      </div>
+      <button class="iconbtn" type="button" id="openSettings" aria-label="設定">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="banner" id="keyBanner" hidden>
+    <b>還差一步：設定 Claude API 金鑰</b>
+    <span>翻譯和整理會議都需要金鑰。金鑰只存在這支手機上。</span>
+    <div class="row"><button class="go" type="button" id="bannerSetup">前往設定</button></div>
+  </div>
+
+  <div class="nav" role="tablist" aria-label="功能">
+    <button type="button" role="tab" id="navTranslate" aria-selected="true">翻譯</button>
+    <button type="button" role="tab" id="navTalk" aria-selected="false">對話</button>
+    <button type="button" role="tab" id="navMeeting" aria-selected="false">會議</button>
+  </div>
+
+  <!-- ===== Translate ===== -->
+  <div class="view" id="viewTranslate">
+    <div class="langbar">
+      <label><span class="lbl">原文</span><select class="sel" id="srcLang"></select></label>
+      <button class="swap" id="swapBtn" type="button" aria-label="互換語言"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
+      <label><span class="lbl">譯文</span><select class="sel" id="tgtLang"></select></label>
+    </div>
+    <section class="card">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tabText" aria-selected="true">文字／語音</button>
+        <button type="button" role="tab" id="tabPhoto" aria-selected="false">拍照翻譯</button>
+      </div>
+      <div id="paneText">
+        <textarea class="big" id="srcText" placeholder="按麥克風說話，或輸入要翻譯的內容…" aria-label="原文"></textarea>
+        <div class="row">
+          <button class="mic" type="button" id="micBtn" aria-label="語音輸入" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <span class="count" id="count">0 字</span>
+          <button class="ghost" type="button" id="clearBtn">清除</button>
+          <span class="spacer"></span>
+          <button class="go" type="button" id="goText">翻譯</button>
+        </div>
+        <p class="hint" id="micHint">按麥克風說話，說完會自動翻譯。先選好原文語言，辨識會更準。</p>
+      </div>
+      <div id="panePhoto" hidden>
+        <label class="drop" id="dropZone">
+          <input type="file" id="photoInput" accept="image/*" capture="environment" aria-label="拍照或選擇圖片">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          <strong>拍照或選擇圖片</strong>
+          <span>菜單、看板、文件、簡報畫面</span>
+        </label>
+        <div class="preview" id="preview" hidden><img id="previewImg" alt="待翻譯的圖片"><p id="previewName"></p></div>
+        <div class="row">
+          <button class="ghost" type="button" id="rePick" hidden>換一張</button>
+          <span class="spacer"></span>
+          <button class="go" type="button" id="goPhoto" disabled>翻譯圖片</button>
+        </div>
+      </div>
+    </section>
+    <section class="result" aria-live="polite">
+      <div class="result-head"><span id="resLabel">譯文</span><span class="tag" id="resTag">範例</span></div>
+      <p class="out" id="out"></p>
+      <div class="acts">
+        <button type="button" id="speakBtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16.5 9a4 4 0 0 1 0 6"/></svg>朗讀</button>
+        <button type="button" id="copyBtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span>複製</span></button>
+        <button type="button" id="replyBtn"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-2"/></svg>對方回覆</button>
+        <button type="button" id="stopBtn" hidden>停止</button>
+      </div>
+    </section>
+    <p class="status" id="status" hidden></p>
+    <section class="hist">
+      <div class="row"><h2>最近翻譯</h2><span class="spacer"></span><button class="ghost" type="button" id="clearHist">清除紀錄</button></div>
+      <ul id="histList"></ul>
+      <p class="empty" id="histEmpty">翻譯過的內容會留在這支手機上，點一下即可再次查看。</p>
+    </section>
+  </div>
+
+  <!-- ===== Conversation ===== -->
+  <div class="view" id="viewTalk" hidden>
+    <div class="langbar">
+      <label><span class="lbl">我說</span><select class="sel" id="tkMe"></select></label>
+      <button class="swap" id="tkSwap" type="button" aria-label="互換雙方語言"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></button>
+      <label><span class="lbl">對方說</span><select class="sel" id="tkThem"></select></label>
+    </div>
+    <section class="chat" id="tkLog" aria-live="polite"></section>
+    <section class="composer">
+      <textarea id="tkText" rows="2" placeholder="說話或輸入…" aria-label="對話內容"></textarea>
+      <div class="talkbtns">
+        <button type="button" class="talk me" id="tkMicMe" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span><b>我說</b><small id="tkMeName"></small></span></button>
+        <button type="button" class="talk them" id="tkMicThem" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span><b>對方說</b><small id="tkThemName"></small></span></button>
+      </div>
+      <div class="row">
+        <label class="toggle"><input type="checkbox" id="tkSpeak" checked> 自動朗讀譯文</label>
+        <span class="spacer"></span>
+        <button class="ghost" type="button" id="tkClear">清除對話</button>
+      </div>
+      <p class="hint" id="tkHint">按「我說」或「對方說」開始說話，說完自動翻譯並朗讀。點譯文可放大給對方看。</p>
+    </section>
+  </div>
+
+  <!-- ===== Meeting ===== -->
+  <div class="view" id="viewMeeting" hidden>
+    <section class="card">
+      <div class="fields">
+        <label class="full">會議主題（可留空，會自動命名）<input id="mtTitle" type="text" placeholder="例：新設備交期確認"></label>
+        <label>會議中說的語言<select id="mtSpeak"></select></label>
+        <label>即時翻譯成<select id="mtLive"></select></label>
+        <label>會議記錄語言<select id="mtOut"></select></label>
+        <label>會議日期<input id="mtDate" type="date"></label>
+        <label class="full">與會者（可留空）<input id="mtPeople" type="text" placeholder="例：田中（客戶）、王（我方）"></label>
+      </div>
+      <label class="toggle"><input type="checkbox" id="mtAudio"> 同時保存錄音檔（iPhone 上可能讓即時辨識變不穩，建議先試一次）</label>
+      <div class="recbar">
+        <button class="rec" type="button" id="recBtn"><span class="dot"></span><span id="recLabel">開始錄音</span></button>
+        <div><div class="rectime" id="recTime">00:00</div><div class="recstate" id="recState">錄音時請保持螢幕開啟，建議接上充電</div></div>
+      </div>
+      <p class="status" id="mtStatus" hidden></p>
+    </section>
+
+    <section class="card">
+      <div class="row"><h2>逐字稿</h2><span class="spacer"></span><span class="live" id="liveDot" hidden>辨識中</span><span class="count" id="segCount"></span></div>
+      <div class="segs" id="segList"></div>
+      <p class="interim" id="interim"></p>
+      <div class="row">
+        <button class="go" type="button" id="mtSummarize" disabled>整理會議記錄</button>
+        <span class="spacer"></span>
+        <button class="ghost" type="button" id="mtShareAudio" hidden>分享錄音檔</button>
+      </div>
+      <div class="row"><span class="progress" id="mtProgress" hidden></span><span class="spacer"></span><button class="ghost" type="button" id="mtStop" hidden>停止</button></div>
+    </section>
+
+    <details class="import">
+      <summary>已經有逐字稿？貼上或匯入</summary>
+      <textarea id="importText" placeholder="貼上逐字稿，任何語言、混合語言都可以…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <span class="ghost">匯入檔案<input type="file" id="importFile" accept=".txt,.srt,.vtt,.md,text/plain"></span>
+        <span class="spacer"></span>
+        <button class="go" type="button" id="importGo">使用這份逐字稿</button>
+      </div>
+    </details>
+
+    <article class="minutes" id="minutes" hidden>
+      <div class="minutes-head">
+        <div class="meta"><span class="tag" id="mnTag"></span><span id="mnMeta"></span></div>
+        <h2 id="mnTitle"></h2>
+      </div>
+      <div class="minutes-body">
+        <div class="sec"><h3>摘要</h3><p id="mnSummary"></p></div>
+        <div class="sec"><h3>討論重點</h3><ul id="mnPoints"></ul></div>
+        <div class="sec"><h3>決議事項</h3><ul id="mnDecisions"></ul></div>
+        <div class="sec"><h3>待辦事項</h3><ul class="todo" id="mnActions"></ul></div>
+        <div class="sec"><h3>待確認問題</h3><ul id="mnQuestions"></ul></div>
+        <div class="sec">
+          <h3>完整逐字稿譯文</h3>
+          <p class="none" id="mnFullHint">需要逐句對照時再產生，長會議會分段翻譯。</p>
+          <pre class="full-tr" id="mnFull" hidden></pre>
+          <div class="row"><button class="ghost" type="button" id="mnFullBtn">翻譯完整逐字稿</button></div>
+        </div>
+        <div class="sec"><div class="row">
+          <button class="ghost" type="button" id="mnShare">分享會議記錄</button>
+          <button class="ghost" type="button" id="mnCopy">複製</button>
+          <button class="ghost" type="button" id="mnDownload">下載 .txt</button>
+        </div></div>
+      </div>
+    </article>
+
+    <section class="hist">
+      <div class="row"><h2>過去的會議</h2></div>
+      <ul id="mtHistList"></ul>
+      <p class="empty" id="mtHistEmpty">錄過或整理過的會議會留在這支手機上。</p>
+    </section>
+  </div>
+</div>
+
+<div class="bigview" id="bigView" hidden><p id="bigText"></p><small>點一下關閉</small></div>
+
+<div class="sheet-bg" id="settings" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="row"><h2 id="setTitle">設定</h2><span class="spacer"></span><button class="ghost" type="button" id="closeSettings">完成</button></div>
+    <label>Claude API 金鑰<input id="setKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…"></label>
+    <div class="row"><button class="go" type="button" id="testKey">儲存並測試</button><button class="ghost" type="button" id="showKey">顯示</button></div>
+    <p class="okmsg" id="keyMsg" hidden></p>
+    <p class="hint">金鑰只存在這支手機的瀏覽器裡，不會上傳到任何地方（只用來呼叫 Claude API）。</p>
+    <h2 style="font-size:15px">怎麼取得金鑰</h2>
+    <ol>
+      <li>到 <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> 註冊並登入。</li>
+      <li>在 Billing 儲值，並在 Limits 設定每月花費上限。</li>
+      <li>到 API Keys 建立金鑰，複製後貼到上面。</li>
+    </ol>
+    <details>
+      <summary class="hint">進階：使用的模型</summary>
+      <label style="margin-top:8px">快速翻譯用（翻譯、對話、即時逐字稿）<input id="setFast" type="text" autocapitalize="off" spellcheck="false"></label>
+      <label style="margin-top:8px">會議整理用（摘要、決議、待辦）<input id="setSmart" type="text" autocapitalize="off" spellcheck="false"></label>
+      <p class="hint" style="margin-top:6px">模型名稱改版時可在這裡更新，留空會用預設值。</p>
+    </details>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================= Shared ================= */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
+};
+const LANGS = [
+  ["zh-TW","繁體中文","Traditional Chinese (Taiwan usage)","zh-TW"],
+  ["zh-CN","简体中文","Simplified Chinese (Mainland usage)","zh-CN"],
+  ["ja","日本語","Japanese","ja-JP"],
+  ["en","English","English","en-US"],
+  ["ko","한국어","Korean","ko-KR"],
+  ["th","ไทย","Thai","th-TH"],
+  ["vi","Tiếng Việt","Vietnamese","vi-VN"],
+  ["ms","Bahasa Melayu","Malay","ms-MY"],
+  ["id","Bahasa Indonesia","Indonesian","id-ID"],
+  ["hi","हिन्दी","Hindi","hi-IN"],
+  ["de","Deutsch","German","de-DE"],
+  ["fr","Français","French","fr-FR"],
+  ["es","Español","Spanish","es-ES"]
+].map(([id,name,en,voice]) => ({id,name,en,voice}));
+const byId = Object.fromEntries(LANGS.map(l => [l.id, l]));
+function fillSelect(sel, extra){
+  if (extra) for (const [v, t] of extra) sel.add(new Option(t, v));
+  for (const l of LANGS) sel.add(new Option(l.name, l.id));
+}
+const TONES = {
+  neutral: "natural and accurate, neutral register",
+  business: "polite business register suitable for clients and partners (keigo in Japanese, formal forms in Korean and Thai, professional wording elsewhere)",
+  casual: "friendly everyday spoken language"
+};
+let tone = store.get("pt-tone", "neutral");
+function setTone(t){
+  tone = TONES[t] ? t : "neutral"; store.set("pt-tone", tone);
+  document.querySelectorAll("[data-tone]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tone === tone)));
+}
+document.querySelectorAll("[data-tone]").forEach(b => b.onclick = () => setTone(b.dataset.tone));
+setTone(tone);
+const fmtTime = s => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+/* ================= Settings & Claude API ================= */
+const DEFAULT_MODELS = { fast: "claude-haiku-5-5", smart: "claude-sonnet-5-5" };
+let settings = Object.assign({ key: "", fast: "", smart: "" }, store.get("pt-settings", {}));
+const model = kind => (settings[kind] || "").trim() || DEFAULT_MODELS[kind];
+function refreshBanner(){ $("keyBanner").hidden = !!settings.key; }
+function openSettings(){
+  $("setKey").value = settings.key; $("setFast").value = settings.fast || DEFAULT_MODELS.fast; $("setSmart").value = settings.smart || DEFAULT_MODELS.smart;
+  $("keyMsg").hidden = true; $("settings").hidden = false;
+}
+function saveSettings(){
+  settings.key = $("setKey").value.trim();
+  settings.fast = $("setFast").value.trim() === DEFAULT_MODELS.fast ? "" : $("setFast").value.trim();
+  settings.smart = $("setSmart").value.trim() === DEFAULT_MODELS.smart ? "" : $("setSmart").value.trim();
+  store.set("pt-settings", settings); refreshBanner();
+}
+$("openSettings").onclick = openSettings;
+$("bannerSetup").onclick = openSettings;
+$("closeSettings").onclick = () => { saveSettings(); $("settings").hidden = true; };
+$("settings").addEventListener("click", e => { if (e.target === $("settings")){ saveSettings(); $("settings").hidden = true; } });
+$("showKey").onclick = () => { const k = $("setKey"); k.type = k.type === "password" ? "text" : "password"; $("showKey").textContent = k.type === "password" ? "顯示" : "隱藏"; };
+$("testKey").onclick = async () => {
+  saveSettings();
+  const m = $("keyMsg"); m.hidden = false; m.style.color = ""; m.textContent = "測試中…";
+  try {
+    const t = await claude({ model: model("fast"), max_tokens: 20, messages: [{ role: "user", content: "Reply with the single word OK." }] });
+    m.textContent = "金鑰可以使用（" + model("fast") + " 回覆：" + t.trim().slice(0, 20) + "）";
+  } catch (e) { m.style.color = "var(--danger)"; m.textContent = apiError(e); }
+};
+refreshBanner();
+
+class ApiError { constructor(code, message, status){ this.code = code; this.message = message || ""; this.status = status; } }
+async function claude({ model: mdl, messages, system, max_tokens = 2048, onText, signal }){
+  if (!settings.key) throw new ApiError("no_key");
+  let res;
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", signal,
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": settings.key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({ model: mdl, max_tokens, messages, ...(system ? { system } : {}), stream: !!onText })
+    });
+  } catch (e) {
+    if (e && e.name === "AbortError") throw new ApiError("cancelled");
+    throw new ApiError("network");
+  }
+  if (!res.ok){
+    let msg = ""; try { const j = await res.json(); msg = j.error && j.error.message || ""; } catch {}
+    const s = res.status;
+    throw new ApiError(s === 401 ? "bad_key" : s === 403 ? "forbidden" : s === 404 ? "bad_model" : s === 429 ? "rate" : (s === 529 || s >= 500) ? "overloaded" : s === 400 && /credit|balance/i.test(msg) ? "no_credit" : "bad_request", msg, s);
+  }
+  if (!onText){
+    const j = await res.json();
+    return (j.content || []).filter(c => c.type === "text").map(c => c.text).join("");
+  }
+  const reader = res.body.getReader(); const dec = new TextDecoder();
+  let buf = "", text = "";
+  try {
+    for (;;){
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0){
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        for (const line of block.split("\n")){
+          if (!line.startsWith("data:")) continue;
+          let ev; try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
+          if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta"){ text += ev.delta.text; onText(text); }
+          else if (ev.type === "error"){ throw new ApiError(ev.error && ev.error.type === "overloaded_error" ? "overloaded" : "bad_request", ev.error && ev.error.message); }
+        }
+      }
+    }
+  } catch (e) {
+    if (e instanceof ApiError) { e.partial = text; throw e; }
+    const err = new ApiError(e && e.name === "AbortError" ? "cancelled" : "network"); err.partial = text; throw err;
+  }
+  return text;
+}
+function apiError(e){
+  const c = e && e.code;
+  return ({
+    no_key: "尚未設定 API 金鑰，請按右上角齒輪輸入。",
+    bad_key: "API 金鑰無效，請按右上角齒輪檢查。",
+    forbidden: "這個金鑰沒有使用權限，請到 console.anthropic.com 檢查。",
+    bad_model: "找不到設定的模型名稱，請到設定的「進階」改回預設值。",
+    rate: "使用太頻繁或已達額度上限，請稍後再試，或到 console.anthropic.com 檢查餘額與上限。",
+    no_credit: "API 餘額不足，請到 console.anthropic.com 儲值。",
+    overloaded: "Claude 服務忙碌中，請再試一次。",
+    network: "網路連線失敗，請檢查網路後再試。",
+    cancelled: "已停止。"
+  })[c] || ("請求失敗：" + ((e && e.message) || "未知錯誤"));
+}
+function parseJSON(t){
+  try { return JSON.parse(t); } catch {}
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (f){ try { return JSON.parse(f[1]); } catch {} }
+  const a = t.indexOf("{"), b = t.lastIndexOf("}");
+  if (a >= 0 && b > a){ try { return JSON.parse(t.slice(a, b + 1)); } catch {} }
+  return null;
+}
+
+/* ================= Speech in & out ================= */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let speechUnlocked = false;
+function unlockSpeech(){
+  if (speechUnlocked || !("speechSynthesis" in window)) return;
+  try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); speechUnlocked = true; } catch {}
+}
+document.addEventListener("click", unlockSpeech, { capture: true });
+function speak(text, langId){
+  if (!text || !("speechSynthesis" in window)) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = (byId[langId] && byId[langId].voice) || "en-US"; u.rate = 0.95;
+    speechSynthesis.speak(u);
+  } catch {}
+}
+const MIC_DENIED = "無法使用麥克風或語音辨識。請到 iPhone「設定」>「Safari」>「麥克風」選允許，並在「設定」>「一般」>「鍵盤」開啟「聽寫」。";
+/* One-shot listener: resolves with the recognized text ("" if nothing heard). */
+function listenOnce(langCode, { onInterim, onStart } = {}){
+  return new Promise((resolve, reject) => {
+    if (!SR) return reject(new Error("unsupported"));
+    try { speechSynthesis.cancel(); } catch {}
+    const rec = new SR();
+    rec.lang = langCode; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+    let text = "", failed = null;
+    rec.onstart = () => onStart && onStart(rec);
+    rec.onresult = ev => { let t = ""; for (const r of ev.results) t += r[0].transcript; text = t; onInterim && onInterim(t); };
+    rec.onerror = ev => { if (ev.error !== "no-speech" && ev.error !== "aborted") failed = ev.error; };
+    rec.onend = () => failed && !text ? reject(new Error(failed)) : resolve(text.trim());
+    try { rec.start(); } catch (e) { reject(e); }
+  });
+}
+
+/* ================= Navigation ================= */
+const VIEWS = { translate: ["navTranslate","viewTranslate"], talk: ["navTalk","viewTalk"], meeting: ["navMeeting","viewMeeting"] };
+function showView(name){
+  if (!VIEWS[name]) name = "translate";
+  for (const [k, [nav, view]] of Object.entries(VIEWS)){ $(nav).setAttribute("aria-selected", String(k === name)); $(view).hidden = k !== name; }
+  $("toneSeg").hidden = name === "meeting";
+  store.set("pt-view", name);
+}
+for (const k of Object.keys(VIEWS)) $(VIEWS[k][0]).onclick = () => showView(k);
+showView(store.get("pt-view", "translate"));
+$("bigView").onclick = () => { $("bigView").hidden = true; };
+function showBig(text){ if (text){ $("bigText").textContent = text; $("bigView").hidden = false; } }
+
+/* ================= Translate ================= */
+(() => {
+  const src = $("srcLang"), tgt = $("tgtLang"), box = $("srcText"), out = $("out"), status = $("status");
+  fillSelect(src, [["auto", "自動偵測"]]); fillSelect(tgt);
+  const p = store.get("pt-prefs", { src: "ja", tgt: "zh-TW" });
+  src.value = (p.src === "auto" || byId[p.src]) ? p.src : "ja";
+  tgt.value = byId[p.tgt] ? p.tgt : "zh-TW";
+  const savePrefs = () => store.set("pt-prefs", { src: src.value, tgt: tgt.value });
+  src.onchange = tgt.onchange = savePrefs;
+  let detected = null, lastOut = "", ctl = null, photo = null;
+
+  const updateCount = () => $("count").textContent = box.value.length + " 字";
+  box.addEventListener("input", updateCount);
+  $("clearBtn").onclick = () => { box.value = ""; updateCount(); box.focus(); };
+  box.value = "来週の打ち合わせの日程を確認させていただけますか。"; updateCount();
+  showResult("請問可以確認一下下週會議的日程嗎？", "日本語 → 繁體中文", "範例");
+
+  function showTab(photoMode){
+    $("tabText").setAttribute("aria-selected", String(!photoMode)); $("tabPhoto").setAttribute("aria-selected", String(photoMode));
+    $("paneText").hidden = photoMode; $("panePhoto").hidden = !photoMode;
+  }
+  $("tabText").onclick = () => showTab(false);
+  $("tabPhoto").onclick = () => showTab(true);
+
+  $("photoInput").onchange = e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    photo = f; $("previewImg").src = URL.createObjectURL(f);
+    $("previewName").textContent = f.name || "相機照片";
+    $("preview").hidden = false; $("dropZone").hidden = true; $("rePick").hidden = false; $("goPhoto").disabled = false;
+  };
+  $("rePick").onclick = () => $("photoInput").click();
+
+  function swap(){
+    const from = src.value === "auto" ? detected : src.value;
+    if (!from){ setStatus("先翻譯一次，偵測出原文語言後才能互換。", true); return; }
+    const t = tgt.value; src.value = t; tgt.value = from;
+    if (lastOut){ box.value = lastOut; updateCount(); }
+    showTab(false); savePrefs();
+  }
+  $("swapBtn").onclick = swap; $("replyBtn").onclick = swap;
+
+  function setStatus(msg, calm){ status.textContent = msg || ""; status.hidden = !msg; status.classList.toggle("calm", !!calm); }
+  function showResult(text, label, tagText){
+    out.classList.remove("placeholder"); out.textContent = text;
+    $("resLabel").textContent = label || "譯文"; $("resTag").textContent = tagText || ""; $("resTag").hidden = !tagText;
+    lastOut = text;
+  }
+  function guessId(name){
+    const pairs = [["繁體","zh-TW"],["簡體","zh-CN"],["简体","zh-CN"],["日","ja"],["英","en"],["韓","ko"],["泰","th"],["越南","vi"],["馬來","ms"],["印尼","id"],["印地","hi"],["德","de"],["法","fr"],["西班牙","es"],["中文","zh-TW"]];
+    for (const [k, v] of pairs) if (name.includes(k)) return v;
+    return null;
+  }
+  async function imageToBase64(file){
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = url; });
+      const max = 1568, s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL("image/jpeg", 0.85).split(",")[1];
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  const HEADER = 'Begin your reply with one line: "@@" followed by the source language name written in Traditional Chinese (for example "@@日本語" or "@@英文"). Then a newline, then ONLY the translation — no notes, no quotation marks, no romanization.';
+  async function run(kind){
+    const target = byId[tgt.value], s0 = src.value;
+    let content;
+    if (kind === "text"){
+      const text = box.value.trim();
+      if (!text){ setStatus("請先說話或輸入要翻譯的內容。", true); return; }
+      content = `Translate the text inside <text> ${s0 === "auto" ? "from whatever language it is in" : "from " + byId[s0].en} into ${target.en}.\nStyle: ${TONES[tone]}.\nKeep names, numbers, units, model numbers and technical terms accurate. Preserve line breaks. The text may come from speech recognition; fix obvious recognition errors from context.\nIf the text is already in ${target.en}, translate it into ${s0 !== "auto" && s0 !== target.id ? byId[s0].en : "English"} instead.\n${HEADER}\n\n<text>\n${text.slice(0, 20000)}\n</text>`;
+    } else {
+      if (!photo){ setStatus("請先拍照或選一張圖片。", true); return; }
+      let b64; try { b64 = await imageToBase64(photo); } catch { setStatus("這張圖片無法讀取，請換一張。"); return; }
+      content = [
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
+        { type: "text", text: `This photo may show a sign, menu, document, label or slide. Read all text in it and translate it into ${target.en}.\nStyle: ${TONES[tone]}.\nKeep reading order, one block or line per line. For menus keep prices next to items. If there is no readable text, say so in one short sentence in ${target.en}.\n${HEADER}` }
+      ];
+    }
+    ctl = new AbortController();
+    setBusy(true); setStatus("");
+    detected = s0 === "auto" ? null : s0;
+    out.classList.add("placeholder", "streaming"); out.textContent = "翻譯中…";
+    $("resLabel").textContent = (s0 === "auto" ? "自動偵測" : byId[s0].name) + " → " + target.name; $("resTag").hidden = true;
+    const onText = text => {
+      let body = text;
+      if (text.startsWith("@@")){
+        const nl = text.indexOf("\n"); if (nl < 0) return;
+        const det = text.slice(2, nl).trim();
+        $("resLabel").textContent = det + " → " + target.name;
+        detected = guessId(det) || detected;
+        body = text.slice(nl + 1).replace(/^\s+/, "");
+      }
+      out.classList.remove("placeholder"); out.textContent = body;
+    };
+    try {
+      await claude({ model: model(kind === "text" ? "fast" : "smart"), max_tokens: 4096, messages: [{ role: "user", content }], onText, signal: ctl.signal });
+      lastOut = out.textContent;
+      addHistory({ kind, src: detected || s0, tgt: target.id, label: $("resLabel").textContent, input: kind === "text" ? box.value.trim() : "📷 " + ($("previewName").textContent || "圖片"), output: lastOut, ts: Date.now() });
+    } catch (e) {
+      if (e.code === "cancelled") lastOut = out.textContent;
+      else { if (!e.partial) out.textContent = ""; setStatus(apiError(e)); }
+    } finally {
+      out.classList.remove("streaming");
+      if (!out.textContent){ out.classList.add("placeholder"); out.textContent = "譯文會顯示在這裡"; lastOut = ""; }
+      setBusy(false);
+    }
+  }
+  function setBusy(b){
+    $("goText").disabled = b; $("goPhoto").disabled = b || !photo;
+    $("goText").textContent = b ? "翻譯中…" : "翻譯"; $("stopBtn").hidden = !b;
+  }
+  $("goText").onclick = () => run("text");
+  $("goPhoto").onclick = () => run("photo");
+  $("stopBtn").onclick = () => ctl && ctl.abort();
+
+  // Voice input
+  const micBtn = $("micBtn"), micHint = $("micHint");
+  let micRec = null;
+  if (!SR){ micHint.textContent = "這個瀏覽器不支援語音辨識，請用 iPhone 的 Safari 開啟。也可以點鍵盤上的麥克風口述。"; }
+  micBtn.onclick = async () => {
+    if (micRec){ try { micRec.stop(); } catch {} return; }
+    if (!SR){ box.focus(); return; }
+    const lang = src.value === "auto" ? (navigator.language || "zh-TW") : byId[src.value].voice;
+    showTab(false);
+    try {
+      const text = await listenOnce(lang, {
+        onStart: r => { micRec = r; micBtn.setAttribute("aria-pressed", "true"); micHint.textContent = "聆聽中…說完會自動翻譯，再按一次可提早結束。"; },
+        onInterim: t => { box.value = t; updateCount(); }
+      });
+      micHint.textContent = "按麥克風說話，說完會自動翻譯。先選好原文語言，辨識會更準。";
+      if (text){ box.value = text; updateCount(); run("text"); }
+      else micHint.textContent = "沒有聽到聲音，再按一次麥克風重試。";
+    } catch (e) {
+      micHint.textContent = /not-allowed|service-not-allowed|audio-capture/.test(String(e && e.message)) ? MIC_DENIED : "語音辨識中斷了，再按一次麥克風重試。";
+    } finally { micRec = null; micBtn.setAttribute("aria-pressed", "false"); }
+  };
+
+  $("copyBtn").onclick = async () => {
+    const label = $("copyBtn").querySelector("span"); if (!lastOut) return;
+    try { await navigator.clipboard.writeText(lastOut); label.textContent = "已複製"; } catch { label.textContent = "無法複製"; }
+    setTimeout(() => label.textContent = "複製", 1600);
+  };
+  $("speakBtn").hidden = !("speechSynthesis" in window);
+  $("speakBtn").onclick = () => speak(lastOut, tgt.value);
+  $("out").onclick = () => showBig(lastOut);
+
+  let hist = store.get("pt-hist", []);
+  function addHistory(item){
+    hist = [item, ...hist.filter(h => !(h.input === item.input && h.tgt === item.tgt))].slice(0, 40);
+    store.set("pt-hist", hist); renderHist();
+  }
+  function renderHist(){
+    const ul = $("histList"); ul.textContent = "";
+    $("histEmpty").hidden = hist.length > 0; $("clearHist").hidden = !hist.length;
+    for (const h of hist){
+      const li = document.createElement("li"), b = document.createElement("button"); b.type = "button";
+      const d = new Date(h.ts);
+      const p1 = document.createElement("span"); p1.className = "pair"; p1.textContent = h.label + " · " + (d.getMonth() + 1) + "/" + d.getDate() + " " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+      const s1 = document.createElement("span"); s1.className = "hsrc"; s1.textContent = h.input;
+      const s2 = document.createElement("span"); s2.className = "hdst"; s2.textContent = h.output;
+      b.append(p1, s1, s2);
+      b.onclick = () => { if (h.kind === "text"){ box.value = h.input; updateCount(); showTab(false); } if (byId[h.tgt]) tgt.value = h.tgt; detected = h.src; showResult(h.output, h.label, ""); scrollTo({ top: 0, behavior: "smooth" }); };
+      li.append(b); ul.append(li);
+    }
+  }
+  let armed = false;
+  $("clearHist").onclick = () => {
+    if (!armed){ armed = true; $("clearHist").textContent = "再按一次確認"; setTimeout(() => { armed = false; $("clearHist").textContent = "清除紀錄"; }, 3000); return; }
+    hist = []; store.set("pt-hist", hist); armed = false; $("clearHist").textContent = "清除紀錄"; renderHist();
+  };
+  renderHist();
+})();
+
+/* ================= Conversation ================= */
+(() => {
+  const me = $("tkMe"), them = $("tkThem"), box = $("tkText"), logEl = $("tkLog"), hint = $("tkHint");
+  fillSelect(me); fillSelect(them);
+  const p = store.get("pt-talk-langs", { me: "zh-TW", them: "ja" });
+  me.value = byId[p.me] ? p.me : "zh-TW"; them.value = byId[p.them] ? p.them : "ja";
+  function syncNames(){ $("tkMeName").textContent = byId[me.value].name; $("tkThemName").textContent = byId[them.value].name; store.set("pt-talk-langs", { me: me.value, them: them.value }); }
+  me.onchange = them.onchange = syncNames; syncNames();
+  $("tkSwap").onclick = () => { const a = me.value; me.value = them.value; them.value = a; syncNames(); };
+  $("tkSpeak").checked = store.get("pt-talk-speak", true);
+  $("tkSpeak").onchange = () => store.set("pt-talk-speak", $("tkSpeak").checked);
+
+  let log = store.get("pt-talk-log", []);
+  const EXAMPLE = [
+    { who: "me", orig: "請問貴公司的工廠什麼時候方便參觀？", tr: "御社の工場はいつ頃見学させていただけますか。", ex: true },
+    { who: "them", orig: "来週の水曜日の午後はいかがでしょうか。", tr: "下週三下午方便嗎？", ex: true }
+  ];
+  function bubble(m){
+    const b = document.createElement("button"); b.type = "button"; b.className = "bubble " + m.who;
+    const w = document.createElement("span"); w.className = "who"; w.textContent = (m.who === "me" ? "我" : "對方") + (m.ex ? " · 範例" : "");
+    const o = document.createElement("span"); o.className = "orig"; o.textContent = m.orig;
+    const t = document.createElement("span"); t.className = "tr"; t.textContent = m.tr || "翻譯中…";
+    b.append(w, o, t); b.onclick = () => showBig(m.tr);
+    return { b, t };
+  }
+  function render(){ logEl.textContent = ""; for (const m of (log.length ? log : EXAMPLE)) logEl.append(bubble(m).b); }
+  render();
+  $("tkClear").onclick = () => { log = []; store.set("pt-talk-log", log); render(); };
+
+  let busy = false, activeSide = null, activeRec = null;
+  const btns = { me: $("tkMicMe"), them: $("tkMicThem") };
+  function setButtons(){ for (const k in btns){ btns[k].disabled = busy && activeSide !== k; btns[k].setAttribute("aria-pressed", String(activeSide === k)); } }
+
+  async function send(side, text){
+    text = text.trim(); if (!text) return;
+    const from = side === "me" ? byId[me.value] : byId[them.value];
+    const to = side === "me" ? byId[them.value] : byId[me.value];
+    const ctx = log.slice(-6).map(m => (m.who === "me" ? "A" : "B") + ": " + m.orig).join("\n");
+    const prompt = `You are a live interpreter in a face-to-face conversation. Speaker A speaks ${byId[me.value].en}; speaker B speaks ${byId[them.value].en}.\n${ctx ? "Recent conversation for context:\n" + ctx + "\n" : ""}Speaker ${side === "me" ? "A" : "B"} just said the line inside <said>, in ${from.en}. It comes from speech recognition and may contain small errors; fix them from context.\nTranslate it into ${to.en} in a ${TONES[tone]}, as something natural to say aloud. Output only the translation.\n\n<said>${text.slice(0, 4000)}</said>`;
+    const m = { who: side, orig: text, tr: "" };
+    if (!log.length) logEl.textContent = "";
+    log.push(m);
+    const { b, t } = bubble(m); logEl.append(b); b.scrollIntoView({ block: "end", behavior: "smooth" });
+    box.value = ""; busy = true; setButtons();
+    try {
+      m.tr = (await claude({ model: model("fast"), max_tokens: 1024, messages: [{ role: "user", content: prompt }], onText: x => { t.textContent = x; } })).trim();
+      t.textContent = m.tr;
+      if ($("tkSpeak").checked) speak(m.tr, to.id);
+      hint.textContent = "按「我說」或「對方說」繼續。點譯文可放大給對方看。";
+    } catch (e) {
+      log.pop(); b.remove(); box.value = text; hint.textContent = apiError(e);
+      if (!log.length) render();
+    } finally { busy = false; setButtons(); log = log.slice(-60); store.set("pt-talk-log", log); }
+  }
+
+  async function press(side){
+    if (activeSide){ try { activeRec && activeRec.stop(); } catch {} return; }
+    if (box.value.trim()) return send(side, box.value);
+    if (!SR){ hint.textContent = "這個瀏覽器不支援語音辨識：點鍵盤上的麥克風說話，再按「" + (side === "me" ? "我說" : "對方說") + "」送出。"; box.focus(); return; }
+    const lang = byId[side === "me" ? me.value : them.value];
+    try {
+      activeSide = side; busy = true; setButtons();
+      const text = await listenOnce(lang.voice, {
+        onStart: r => { activeRec = r; hint.textContent = "聆聽中（" + lang.name + "）…說完自動翻譯，再按一次可提早結束。"; },
+        onInterim: x => { box.value = x; }
+      });
+      activeSide = null; activeRec = null; busy = false; setButtons();
+      if (text) await send(side, text); else hint.textContent = "沒有聽到聲音，再按一次重試。";
+    } catch (e) {
+      activeSide = null; activeRec = null; busy = false; setButtons();
+      hint.textContent = /not-allowed|service-not-allowed|audio-capture/.test(String(e && e.message)) ? MIC_DENIED : "語音辨識中斷了，再按一次重試。";
+    }
+  }
+  btns.me.onclick = () => press("me");
+  btns.them.onclick = () => press("them");
+})();
+
+/* ================= Meeting ================= */
+(() => {
+  const speakSel = $("mtSpeak"), liveSel = $("mtLive"), outSel = $("mtOut");
+  fillSelect(speakSel); fillSelect(liveSel, [["none", "不翻譯"]]); fillSelect(outSel);
+  const p = store.get("pt-meet-prefs", { speak: "ja", live: "zh-TW", out: "zh-TW", audio: false });
+  speakSel.value = byId[p.speak] ? p.speak : "ja";
+  liveSel.value = p.live === "none" || byId[p.live] ? p.live : "zh-TW";
+  outSel.value = byId[p.out] ? p.out : "zh-TW";
+  $("mtAudio").checked = !!p.audio;
+  const savePrefs = () => store.set("pt-meet-prefs", { speak: speakSel.value, live: liveSel.value, out: outSel.value, audio: $("mtAudio").checked });
+  speakSel.onchange = liveSel.onchange = outSel.onchange = $("mtAudio").onchange = savePrefs;
+  const now = new Date();
+  $("mtDate").value = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+
+  function setStatus(msg, calm){ const s = $("mtStatus"); s.textContent = msg || ""; s.hidden = !msg; s.classList.toggle("calm", !!calm); }
+
+  // Current meeting record
+  let mt = null; // {id, ts, title, date, people, speak, out, segments:[{t,text,tr}], minutes, fullTr}
+  let recording = false, rec = null, startTs = 0, timer = null, media = null, mediaRec = null, chunks = [], audioBlob = null, wakeLock = null;
+  let pending = "", restartTimes = [], trQueue = Promise.resolve();
+
+  function newMeeting(){
+    return { id: String(Date.now()), ts: Date.now(), title: $("mtTitle").value.trim(), date: $("mtDate").value, people: $("mtPeople").value.trim(),
+      speak: speakSel.value, out: outSel.value, segments: [], minutes: null, fullTr: "" };
+  }
+  function renderSegments(){
+    const list = $("segList"); list.textContent = "";
+    if (!mt || !mt.segments.length){
+      const e = document.createElement("p"); e.className = "empty";
+      e.textContent = "按「開始錄音」後，說的話會即時出現在這裡" + (liveSel.value !== "none" ? "，並翻譯成" + byId[liveSel.value].name : "") + "。";
+      list.append(e);
+    } else for (const s of mt.segments) list.append(segRow(s));
+    $("segCount").textContent = mt && mt.segments.length ? mt.segments.length + " 句" : "";
+    $("mtSummarize").disabled = recording || !mt || !mt.segments.length;
+  }
+  function segRow(s){
+    const row = document.createElement("div"); row.className = "segrow";
+    const ts = document.createElement("span"); ts.className = "ts"; ts.textContent = s.t == null ? "" : fmtTime(s.t);
+    const tx = document.createElement("span"); tx.className = "txt"; tx.textContent = s.text;
+    const tr = document.createElement("span"); tr.className = "segtr"; tr.textContent = s.tr || ""; tr.hidden = !s.tr;
+    tx.append(tr); row.append(ts, tx); s._tr = tr;
+    return row;
+  }
+  function saveDraft(){ if (mt) store.set("pt-meet-draft", { ...mt, segments: mt.segments.map(({ _tr, ...s }) => s) }); }
+
+  function addSegment(text){
+    text = text.trim(); if (!text) return;
+    const s = { t: Math.max(0, (Date.now() - startTs) / 1000 - 3), text, tr: "" };
+    mt.segments.push(s);
+    const list = $("segList"); if (mt.segments.length === 1) list.textContent = "";
+    list.append(segRow(s)); list.scrollTop = list.scrollHeight;
+    $("segCount").textContent = mt.segments.length + " 句";
+    saveDraft();
+    if (liveSel.value !== "none" && liveSel.value !== mt.speak){
+      const target = byId[liveSel.value], idx = mt.segments.length - 1;
+      trQueue = trQueue.then(async () => {
+        const ctx = mt.segments.slice(Math.max(0, idx - 3), idx).map(x => x.text).join("\n");
+        try {
+          s.tr = (await claude({ model: model("fast"), max_tokens: 1024, messages: [{ role: "user", content:
+            `Live meeting interpretation. ${ctx ? "Previous lines for context:\n" + ctx + "\n" : ""}Translate the new line inside <line> into ${target.en}. It comes from speech recognition and may contain errors; fix them from context. Keep numbers, names and technical terms exact. Output only the translation.\n\n<line>${s.text}</line>` }] })).trim();
+          if (s._tr){ s._tr.textContent = s.tr; s._tr.hidden = false; }
+          saveDraft();
+        } catch (e) { if (e.code === "no_key" || e.code === "bad_key" || e.code === "no_credit") setStatus(apiError(e) + "（錄音和逐字稿仍會繼續）"); }
+      });
+    }
+  }
+
+  function startRecognition(){
+    if (!recording) return;
+    rec = new SR();
+    rec.lang = byId[mt.speak].voice;
+    rec.interimResults = true;
+    rec.continuous = !IS_IOS; // iOS Safari is more reliable restarting after each utterance
+    rec.onresult = ev => {
+      let interim = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++){
+        const r = ev.results[i];
+        if (r.isFinal){ addSegment(r[0].transcript); pending = ""; }
+        else interim += r[0].transcript;
+      }
+      if (interim) pending = interim;
+      $("interim").textContent = pending;
+    };
+    rec.onerror = ev => {
+      if (ev.error === "not-allowed" || ev.error === "service-not-allowed"){ setStatus(MIC_DENIED); stopMeeting(); }
+      else if (ev.error === "network") $("recState").textContent = "辨識服務連線不穩，正在重新連線…";
+    };
+    rec.onend = () => {
+      if (pending){ addSegment(pending); pending = ""; $("interim").textContent = ""; }
+      if (!recording) return;
+      const t = Date.now(); restartTimes = restartTimes.filter(x => t - x < 5000); restartTimes.push(t);
+      const wait = restartTimes.length > 6 ? 1500 : 150;
+      setTimeout(() => { if (recording && !document.hidden) try { startRecognition(); } catch {} }, wait);
+    };
+    try { rec.start(); } catch {}
+  }
+
+  async function startMeeting(){
+    if (!SR){ setStatus("這個瀏覽器不支援語音辨識，請用 iPhone 的 Safari 開啟這個 App。"); return; }
+    if (!settings.key && liveSel.value !== "none") setStatus("尚未設定 API 金鑰：逐字稿會照常記錄，但即時翻譯和整理需要先到設定輸入金鑰。", true);
+    else setStatus("");
+    mt = newMeeting(); audioBlob = null; $("mtShareAudio").hidden = true; $("minutes").hidden = true;
+    renderSegments();
+    recording = true; startTs = Date.now(); pending = ""; restartTimes = [];
+    if ($("mtAudio").checked){
+      try {
+        media = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const type = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
+        mediaRec = new MediaRecorder(media, type ? { mimeType: type } : undefined);
+        chunks = []; mediaRec.ondataavailable = e => e.data && e.data.size && chunks.push(e.data);
+        mediaRec.onstop = () => {
+          audioBlob = new Blob(chunks, { type: mediaRec.mimeType || "audio/mp4" });
+          $("mtShareAudio").hidden = !audioBlob.size;
+        };
+        mediaRec.start(1000);
+      } catch { setStatus("無法保存錄音檔（麥克風被拒絕或不支援），只記錄逐字稿。", true); media = null; mediaRec = null; }
+    }
+    try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch {}
+    startRecognition();
+    $("recBtn").classList.add("on"); $("recLabel").textContent = "結束錄音"; $("liveDot").hidden = false;
+    $("recState").textContent = "錄音中・請保持螢幕開啟";
+    timer = setInterval(() => $("recTime").textContent = fmtTime((Date.now() - startTs) / 1000), 500);
+    [speakSel, liveSel, $("mtAudio")].forEach(x => x.disabled = true);
+    $("mtSummarize").disabled = true;
+  }
+  function stopMeeting(){
+    if (!recording) return;
+    recording = false; clearInterval(timer);
+    try { rec && rec.stop(); } catch {}
+    try { mediaRec && mediaRec.state !== "inactive" && mediaRec.stop(); } catch {}
+    if (media) media.getTracks().forEach(t => t.stop());
+    media = null;
+    try { wakeLock && wakeLock.release(); } catch {} wakeLock = null;
+    $("recBtn").classList.remove("on"); $("recLabel").textContent = "開始新的錄音"; $("liveDot").hidden = true;
+    $("recState").textContent = "已結束，共 " + fmtTime((Date.now() - startTs) / 1000);
+    [speakSel, liveSel, $("mtAudio")].forEach(x => x.disabled = false);
+    setTimeout(() => {
+      if (pending){ addSegment(pending); pending = ""; } $("interim").textContent = "";
+      if (mt){ mt.duration = Math.round((Date.now() - startTs) / 1000); if (mt.segments.length) saveMeeting(mt); }
+      renderSegments();
+    }, 600);
+  }
+  $("recBtn").onclick = () => recording ? stopMeeting() : startMeeting();
+  document.addEventListener("visibilitychange", async () => {
+    if (!recording) return;
+    if (document.hidden){ $("recState").textContent = "App 在背景時無法辨識，請回到畫面"; return; }
+    try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); } catch {}
+    $("recState").textContent = "錄音中・請保持螢幕開啟";
+    try { rec && rec.abort(); } catch {}
+    setTimeout(() => { if (recording) try { startRecognition(); } catch {} }, 300);
+  });
+  window.addEventListener("beforeunload", e => { if (recording){ e.preventDefault(); e.returnValue = ""; } });
+
+  $("mtShareAudio").onclick = async () => {
+    if (!audioBlob) return;
+    const ext = audioBlob.type.includes("webm") ? "webm" : "m4a";
+    const file = new File([audioBlob], (mt && mt.date ? mt.date + "_" : "") + "會議錄音." + ext, { type: audioBlob.type });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: "會議錄音" });
+      else downloadBlob(file, file.name);
+    } catch {}
+  };
+  function downloadBlob(blob, name){
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  // Import transcript
+  $("importFile").onchange = async e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try {
+      let t = await f.text();
+      if (/\.(srt|vtt)$/i.test(f.name) || /-->/.test(t)) t = t.split(/\r?\n/).filter(l => { const s = l.trim(); return s && s !== "WEBVTT" && !/^\d+$/.test(s) && !/-->/.test(s) && !/^(NOTE|STYLE|Kind:|Language:)/.test(s); }).join("\n");
+      $("importText").value = t;
+      if (!$("mtTitle").value) $("mtTitle").value = f.name.replace(/\.[^.]+$/, "");
+    } catch { setStatus("這個檔案讀不出文字，請改用 .txt，或直接貼上。"); }
+    e.target.value = "";
+  };
+  $("importGo").onclick = () => {
+    const t = $("importText").value.trim();
+    if (t.length < 20){ setStatus("請先貼上逐字稿。", true); return; }
+    if (recording) stopMeeting();
+    mt = newMeeting();
+    mt.segments = t.split(/\n+/).map(x => x.trim()).filter(Boolean).map(text => ({ t: null, text, tr: "" }));
+    mt.imported = true; $("minutes").hidden = true;
+    renderSegments(); saveMeeting(mt); setStatus("已載入逐字稿，按「整理會議記錄」產生摘要。", true);
+    $("importText").value = ""; document.querySelector("details.import").open = false;
+  };
+
+  // Summarize
+  let ctl = null, ptimer = null;
+  function busy(on, label){
+    $("mtSummarize").disabled = on || recording || !mt || !mt.segments.length; $("mnFullBtn").disabled = on; $("recBtn").disabled = on;
+    $("mtStop").hidden = !on; $("mtProgress").hidden = !on; clearInterval(ptimer);
+    if (on){ const t0 = Date.now(); const tick = () => $("mtProgress").textContent = label() + "（" + Math.round((Date.now() - t0) / 1000) + " 秒）"; tick(); ptimer = setInterval(tick, 1000); }
+  }
+  $("mtStop").onclick = () => ctl && ctl.abort();
+  const transcriptText = m => m.segments.map(s => (s.t == null ? "" : "[" + fmtTime(s.t) + "] ") + s.text).join("\n");
+
+  $("mtSummarize").onclick = async () => {
+    if (!mt || !mt.segments.length) return;
+    const out = byId[outSel.value]; mt.out = out.id;
+    mt.title = $("mtTitle").value.trim() || mt.title; mt.people = $("mtPeople").value.trim() || mt.people; mt.date = $("mtDate").value || mt.date;
+    const raw = transcriptText(mt);
+    const prompt = `You are an experienced bilingual meeting secretary for a company that designs and sells industrial equipment.
+Below is a meeting transcript produced by automatic speech recognition, so expect missing punctuation, misheard words, no speaker labels and possibly several languages.
+Write the meeting minutes entirely in ${out.en}. Correct obvious recognition errors from context, keep numbers, dates, prices, model numbers and technical terms exact, and never invent facts that are not in the transcript.
+${mt.title ? "Meeting topic given by the user: " + mt.title + "\n" : ""}${mt.people ? "Participants given by the user: " + mt.people + "\n" : ""}${mt.date ? "Meeting date: " + mt.date + "\n" : ""}
+Reply with only one JSON object of this shape:
+{"title": string, "sourceLanguages": string (languages spoken, named in ${out.en}), "summary": string (3-6 sentences), "keyPoints": [string], "decisions": [string], "actions": [{"task": string, "owner": string, "due": string}], "openQuestions": [string]}
+Use "" for an unknown owner or due date and [] for empty lists. One sentence per list item.
+
+<transcript>
+${raw.slice(0, 150000)}
+</transcript>`;
+    ctl = new AbortController(); setStatus(""); busy(true, () => "正在整理會議記錄");
+    try {
+      const t = await claude({ model: model("smart"), max_tokens: 6000, messages: [{ role: "user", content: prompt }], signal: ctl.signal, onText: () => {} });
+      const r = parseJSON(t);
+      if (!r || !r.summary) throw new ApiError("bad_json", "整理結果格式不完整，請再按一次「整理會議記錄」。");
+      mt.minutes = r; if (!mt.title) mt.title = r.title || "";
+      renderMinutes(); saveMeeting(mt);
+      $("minutes").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) { if (e.code !== "cancelled") setStatus(e.code === "bad_json" ? e.message : apiError(e)); }
+    finally { busy(false); }
+  };
+
+  function fillList(id, items, emptyText){
+    const ul = $(id); ul.textContent = "";
+    const arr = Array.isArray(items) ? items.filter(Boolean) : [];
+    if (!arr.length){ const li = document.createElement("li"); li.className = "none"; li.textContent = emptyText; ul.append(li); return; }
+    for (const it of arr){ const li = document.createElement("li"); li.textContent = String(it); ul.append(li); }
+  }
+  function renderMinutes(){
+    const m = mt && mt.minutes; $("minutes").hidden = !m; if (!m) return;
+    $("mnTag").textContent = byId[mt.out] ? byId[mt.out].name : "";
+    $("mnMeta").textContent = [mt.date, mt.duration ? "長度 " + fmtTime(mt.duration) : "", m.sourceLanguages ? "原文：" + m.sourceLanguages : "", mt.people ? "與會：" + mt.people : ""].filter(Boolean).join(" · ");
+    $("mnTitle").textContent = mt.title || m.title || "會議記錄";
+    $("mnSummary").textContent = m.summary || "";
+    fillList("mnPoints", m.keyPoints, "無"); fillList("mnDecisions", m.decisions, "本次會議沒有明確決議");
+    const ul = $("mnActions"); ul.textContent = "";
+    const acts = Array.isArray(m.actions) ? m.actions.filter(a => a && a.task) : [];
+    if (!acts.length){ const li = document.createElement("li"); li.className = "none"; li.textContent = "沒有待辦事項"; ul.append(li); }
+    for (const a of acts){
+      const li = document.createElement("li"), box = document.createElement("span"), body = document.createElement("div"), t = document.createElement("div"), chips = document.createElement("div");
+      box.className = "box"; chips.className = "chips"; t.textContent = a.task;
+      for (const [k, v] of [["負責", a.owner], ["期限", a.due]]) if (v){ const c = document.createElement("span"); c.className = "chip"; c.textContent = k + "：" + v; chips.append(c); }
+      body.append(t); if (chips.childElementCount) body.append(chips); li.append(box, body); ul.append(li);
+    }
+    fillList("mnQuestions", m.openQuestions, "無");
+    $("mnFull").textContent = mt.fullTr || ""; $("mnFull").hidden = !mt.fullTr; $("mnFullHint").hidden = !!mt.fullTr;
+    $("mnFullBtn").textContent = mt.fullTr ? "重新翻譯完整逐字稿" : "翻譯完整逐字稿";
+  }
+
+  $("mnFullBtn").onclick = async () => {
+    if (!mt) return;
+    const out = byId[mt.out] || byId["zh-TW"];
+    const lines = mt.segments.map(s => (s.t == null ? "" : "[" + fmtTime(s.t) + "] ") + s.text);
+    const parts = []; let cur = "";
+    for (const l of lines){ if ((cur + "\n" + l).length > 5000 && cur){ parts.push(cur); cur = l; } else cur = cur ? cur + "\n" + l : l; }
+    if (cur) parts.push(cur);
+    ctl = new AbortController(); let done = "", idx = 0;
+    $("mnFull").hidden = false; $("mnFullHint").hidden = true; $("mnFull").textContent = "";
+    busy(true, () => "正在翻譯逐字稿 " + (idx + 1) + "/" + parts.length);
+    try {
+      for (idx = 0; idx < parts.length; idx++){
+        const r = await claude({ model: model("fast"), max_tokens: 8000, signal: ctl.signal, messages: [{ role: "user", content:
+          `Translate this part of a meeting transcript into ${out.en}. It comes from speech recognition and may contain errors and several languages; fix obvious errors from context. Keep the [mm:ss] timestamps at the start of lines and one line per utterance. Output only the translation.\n\n<part>\n${parts[idx]}\n</part>` }],
+          onText: x => { $("mnFull").textContent = done + x; } });
+        done += r.trim() + "\n"; $("mnFull").textContent = done;
+      }
+      mt.fullTr = done.trim(); saveMeeting(mt); $("mnFullBtn").textContent = "重新翻譯完整逐字稿";
+    } catch (e) { if (e.code !== "cancelled") setStatus(apiError(e)); mt.fullTr = $("mnFull").textContent; }
+    finally { busy(false); }
+  };
+
+  function asText(){
+    const m = mt.minutes || {}, L = [];
+    L.push(mt.title || m.title || "會議記錄");
+    const meta = [mt.date && "日期：" + mt.date, mt.duration && "長度：" + fmtTime(mt.duration), mt.people && "與會：" + mt.people, m.sourceLanguages && "原文語言：" + m.sourceLanguages].filter(Boolean);
+    if (meta.length) L.push(meta.join("　"));
+    if (mt.minutes){
+      L.push("", "【摘要】", m.summary || "");
+      const list = (h, a) => { L.push("", h); (a && a.length ? a : ["無"]).forEach(x => L.push("・" + x)); };
+      list("【討論重點】", m.keyPoints); list("【決議事項】", m.decisions);
+      L.push("", "【待辦事項】");
+      const acts = (m.actions || []).filter(a => a && a.task);
+      if (!acts.length) L.push("・無");
+      acts.forEach(a => L.push("□ " + a.task + (a.owner ? "／負責：" + a.owner : "") + (a.due ? "／期限：" + a.due : "")));
+      list("【待確認問題】", m.openQuestions);
+    }
+    if (mt.fullTr) L.push("", "【逐字稿譯文】", mt.fullTr);
+    L.push("", "【原文逐字稿】", transcriptText(mt));
+    return L.join("\n");
+  }
+  $("mnShare").onclick = async () => {
+    try { if (navigator.share) await navigator.share({ title: mt.title || "會議記錄", text: asText() }); else throw 0; }
+    catch (e) { if (!(e && e.name === "AbortError")) $("mnCopy").click(); }
+  };
+  $("mnCopy").onclick = async () => {
+    const b = $("mnCopy");
+    try { await navigator.clipboard.writeText(asText()); b.textContent = "已複製"; } catch { b.textContent = "無法複製"; }
+    setTimeout(() => b.textContent = "複製", 1600);
+  };
+  $("mnDownload").onclick = () => {
+    const name = ((mt.date ? mt.date + "_" : "") + (mt.title || "會議記錄")).replace(/[\\/:*?"<>|]/g, "").slice(0, 60) + ".txt";
+    downloadBlob(new Blob([asText()], { type: "text/plain;charset=utf-8" }), name);
+  };
+
+  // History
+  let hist = store.get("pt-meetings", []);
+  function saveMeeting(m){
+    const clean = { ...m, segments: m.segments.map(({ _tr, ...s }) => s) };
+    hist = [clean, ...hist.filter(h => h.id !== m.id)].slice(0, 20);
+    while (!store.set("pt-meetings", hist) && hist.length > 1) hist.pop();
+    store.set("pt-meet-draft", null); renderHist();
+  }
+  function renderHist(){
+    const ul = $("mtHistList"); ul.textContent = ""; $("mtHistEmpty").hidden = hist.length > 0;
+    for (const h of hist){
+      const li = document.createElement("li"), b = document.createElement("button"); b.type = "button";
+      const p1 = document.createElement("span"); p1.className = "pair";
+      p1.textContent = [h.date, h.duration ? fmtTime(h.duration) : "", h.segments.length + " 句", h.minutes ? "已整理" : "未整理"].filter(Boolean).join(" · ");
+      const t = document.createElement("span"); t.className = "hdst"; t.textContent = h.title || (h.minutes && h.minutes.title) || "未命名會議";
+      const s2 = document.createElement("span"); s2.className = "hsrc"; s2.textContent = (h.minutes && h.minutes.summary) || (h.segments[0] && h.segments[0].text) || "";
+      b.append(p1, t, s2);
+      b.onclick = () => {
+        if (recording) return;
+        mt = JSON.parse(JSON.stringify(h));
+        $("mtTitle").value = mt.title || ""; $("mtPeople").value = mt.people || ""; if (mt.date) $("mtDate").value = mt.date;
+        if (byId[mt.out]) outSel.value = mt.out;
+        renderSegments(); renderMinutes(); audioBlob = null; $("mtShareAudio").hidden = true;
+        $("recTime").textContent = mt.duration ? fmtTime(mt.duration) : "00:00";
+        scrollTo({ top: 0, behavior: "smooth" });
+      };
+      li.append(b); ul.append(li);
+    }
+  }
+  // Recover a meeting interrupted by a crash or a closed app
+  const draft = store.get("pt-meet-draft", null);
+  if (draft && draft.segments && draft.segments.length && !hist.some(h => h.id === draft.id)){
+    mt = draft; saveMeeting(mt); setStatus("找回上次中斷的會議逐字稿，已存到「過去的會議」。", true);
+  }
+  renderHist(); renderSegments(); renderMinutes();
+})();
+
+/* ================= Offline shell ================= */
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
